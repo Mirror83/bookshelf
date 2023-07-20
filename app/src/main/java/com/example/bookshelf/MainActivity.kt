@@ -28,7 +28,7 @@ class MainActivity : ComponentActivity() {
                     Surface(
                         modifier = Modifier
                             .fillMaxSize()
-                             .padding(paddingValues),
+                            .padding(paddingValues),
                         color = MaterialTheme.colorScheme.background,
                     ) {
                         BookshelfApp()
@@ -42,5 +42,8 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookshelfTopAppBar(modifier: Modifier = Modifier) {
-    CenterAlignedTopAppBar(title = { Text(stringResource(R.string.app_name)) }, modifier = modifier)
+    CenterAlignedTopAppBar(
+        title = { Text(stringResource(R.string.app_name)) },
+        modifier = modifier
+    )
 }
