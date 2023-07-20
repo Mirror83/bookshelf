@@ -5,9 +5,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.viewModelScope
-import com.example.bookshelf.network.BookData
-import com.example.bookshelf.network.BookshelfApi
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import com.example.bookshelf.BookshelfApplication
+import com.example.bookshelf.data.BookshelfRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -28,7 +31,9 @@ data class UiBookData(
     val thumbnailUrl: String,
 )
 
-class BookshelfViewModel : ViewModel() {
+class BookshelfViewModel(
+    private val bookshelfRepository: BookshelfRepository
+) : ViewModel() {
     private var _bookshelfUiState: MutableStateFlow<BookshelfUiState> =
         MutableStateFlow(BookshelfUiState.Loading)
     val bookshelfUiState = _bookshelfUiState.asStateFlow()
@@ -42,16 +47,8 @@ class BookshelfViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 _bookshelfUiState.value = BookshelfUiState.Loading
-                val bookSearchResult = BookshelfApi.retrofitService.getBookIds(searchCategory)
-                val uiBookDataList = mutableListOf<UiBookData>()
-                for (book in bookSearchResult.books) {
-                    val bookData: BookData = BookshelfApi.retrofitService.getBookData(book.id)
-                    if (bookData.volumeInfo.imageLinks?.thumbnail != null) {
-                        val httpsThumbnailLink = bookData.volumeInfo.imageLinks
-                            .thumbnail.replace("http", "https")
-                        uiBookDataList.add(UiBookData(bookData.id, httpsThumbnailLink))
-                    }
-                }
+                val uiBookDataList: List<UiBookData> =
+                    bookshelfRepository.getUiBookData(searchCategory)
                 _bookshelfUiState.value = BookshelfUiState.Success(uiBookDataList)
             } catch (e: IOException) {
                 e.message?.let { Log.e("BookshelfErrorIO", it) }
@@ -65,5 +62,16 @@ class BookshelfViewModel : ViewModel() {
 
     init {
         getBooks()
+    }
+
+    companion object {
+        val Factory = viewModelFactory {
+            initializer {
+                val application = this[APPLICATION_KEY] as BookshelfApplication
+                val container = application.container
+                val bookshelfRepository = container.bookshelfRepository
+                BookshelfViewModel(bookshelfRepository)
+            }
+        }
     }
 }
